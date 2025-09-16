@@ -34,19 +34,51 @@ class Stock(models.Model):
     
     @property
     def sold_quantity(self):
-        return sum(stockset.sold_quantity for stockset in self.stocksets.all())
+        total = 0
+        for stockset in self.stocksets.all():
+            for sale in stockset.sales.all():
+                if stockset.consumption_quantity:
+                    total += sale.quantity * stockset.consumption_quantity
+                else:
+                    total += sale.quantity
+        return total
+
 
     @property
     def purchased_quantity(self):
-        return sum(stockset.purchased_quantity for stockset in self.stocksets.all())
+        total = 0
+        for stockset in self.stocksets.all():
+            for purchase in stockset.purchases.all():
+                if stockset.consumption_quantity:
+                    total += purchase.quantity * stockset.consumption_quantity
+                else:
+                    total += purchase.quantity
+        return total
+
     
     @property
     def sales_return_quantity(self):
-        return sum(stockset.sales_return_quantity for stockset in self.stocksets.all())
+        total = 0
+        for stockset in self.stocksets.all():
+            for sale in stockset.sales.all():
+                if stockset.consumption_quantity:
+                    total += sale.return_quantity * stockset.consumption_quantity
+                else:
+                    total += sale.return_quantity
+        return total
+
 
     @property
     def purchases_return_quantity(self):
-        return sum(stockset.purchases_return_quantity for stockset in self.stocksets.all())
+        total = 0
+        for stockset in self.stocksets.all():
+            for purchase in stockset.purchases.all():
+                if stockset.consumption_quantity:
+                    total += purchase.return_quantity * stockset.consumption_quantity
+                else:
+                    total += purchase.return_quantity
+        return total
+
     
     @property
     def remaining_quantity(self):
@@ -58,6 +90,20 @@ class StockSet(models.Model):
     name = models.CharField(unique=True, max_length=100)
     stock = models.ManyToManyField(Stock, related_name='stocksets')
 
+    # New optional fields for bundle prices
+    custom_cost_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    custom_selling_price_retail = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    custom_selling_price_wholesale = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    # 👇 NEW FIELD
+    consumption_quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="How much base stock this set consumes (e.g., 5ml, 10ml)."
+    )
+    
     def __str__(self):
         return self.name
     
@@ -66,6 +112,8 @@ class StockSet(models.Model):
         if self.stock.all().count() > 1:
             return "Set"
         else:
+            if self.stock.first().name != self.name:
+                return "Set"
             return self.stock.first().stock_type.name if self.stock.first().stock_type else "unknown"
     
     @property
@@ -84,25 +132,32 @@ class StockSet(models.Model):
     
     @property
     def cost_price(self):
+        if self.custom_cost_price is not None:
+            return self.custom_cost_price
         stocks = self.stock.all()
         if not stocks:
             return 0
         return sum(stock.cost_price for stock in stocks)
-    
+
     @property
     def selling_price_retail(self):
+        if self.custom_selling_price_retail is not None:
+            return self.custom_selling_price_retail
         stocks = self.stock.all()
         if not stocks:
             return 0
         return sum(stock.selling_price_retail for stock in stocks)
-    
+
     @property
     def selling_price_wholesale(self):
+        if self.custom_selling_price_wholesale is not None:
+            return self.custom_selling_price_wholesale
         stocks = self.stock.all()
         if not stocks:
             return 0
         return sum(stock.selling_price_wholesale for stock in stocks)
-    
+
+
     @property
     def initial_quantity(self):
         stocks = self.stock.all()
@@ -131,6 +186,12 @@ class StockSet(models.Model):
         stocks = self.stock.all()
         if not stocks:
             return 0
-        return min(stock.remaining_quantity for stock in stocks)
+
+        if self.consumption_quantity:
+            # Divide available stock by consumption_quantity to get number of sets
+            return min(stock.remaining_quantity // self.consumption_quantity for stock in stocks)
+        else:
+            # Fallback to old behaviour
+            return min(stock.remaining_quantity for stock in stocks)
     
 

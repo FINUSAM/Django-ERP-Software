@@ -18,9 +18,9 @@ class SaleForm(forms.ModelForm):
         fields = ['stockset', 'quantity', 'price_per_unit', 'return_quantity', 'return_price_per_unit']
         widgets = {
             'quantity': forms.NumberInput(attrs={'min': 1, 'step': '1'}),
-            'price_per_unit': forms.NumberInput(attrs={'min': 0, 'step': '1'}),
+            'price_per_unit': forms.NumberInput(attrs={'min': 0, 'step': '0.01'}),
             'return_quantity': forms.NumberInput(attrs={'min': 0, 'step': '1'}),
-            'return_price_per_unit': forms.NumberInput(attrs={'min': 0, 'step': '1'})
+            'return_price_per_unit': forms.NumberInput(attrs={'min': 0, 'step': '0.01'})
         }
 
 SaleFormSet = inlineformset_factory(

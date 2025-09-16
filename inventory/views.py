@@ -15,6 +15,28 @@ class Inventory(ListView):
         context['stock_types'] = StockType.objects.all()  # Add your second model here
         return context
 
+class Inventory(ListView):
+    model = StockSet
+    template_name = 'inventory/inventory.html'
+    ordering = ['name']
+
+    def get_queryset(self):
+        return (
+            StockSet.objects
+            .prefetch_related(
+                'stock',                 # preload M2M stocks
+                'stock__stocksets',      # avoid nested queries
+                'stock__stock_type',     # preload stock types
+                'sales', 'purchases'     # preload sales/purchases if used
+            )
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['stock_types'] = StockType.objects.all()
+        return context
+
+
 # ------- Create Views -------
 
 class StockCreateView(ModelNameContextMixin, CreateView):
@@ -25,9 +47,10 @@ class StockCreateView(ModelNameContextMixin, CreateView):
 
 class StockSetCreateView(ModelNameContextMixin, CreateView):
     model = StockSet
-    fields = ['name', 'stock']
+    fields = ['name', 'stock', 'custom_selling_price_retail', 'custom_selling_price_wholesale', 'consumption_quantity']
     template_name = 'model_create_edit_form.html'
     success_url = reverse_lazy('inventory')
+
 
 class StockTypeCreateView(ModelNameContextMixin, CreateView):
     model = StockType
@@ -51,7 +74,7 @@ class StockTypeUpdateView(ModelNameContextMixin, UpdateView):
 
 class StockSetUpdateView(ModelNameContextMixin, UpdateView):
     model = StockSet
-    fields = ['name', 'stock']
+    fields = ['name', 'stock', 'custom_selling_price_retail', 'custom_selling_price_wholesale', 'consumption_quantity']
     template_name = 'model_create_edit_form.html'
     success_url = reverse_lazy('inventory')
 
