@@ -72,7 +72,7 @@
                 {% if item.stock_type == stock_type.name %}
                 <tr>
                     <td>{{ item.name }}</td>
-                    <td>{{ item.remaining_quantity }}{{ stock_type.unit }}</td>
+                    <td>{{ item.remaining_quantity }}{{ stock_type.unit|default_if_none:"" }}</td>
                     <td>
                         {% if item.stock_type == 'Set' %}
                         <a href="{% url 'stock_detail' item.stock_pk %}">View</a>

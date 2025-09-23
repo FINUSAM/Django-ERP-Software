@@ -11,7 +11,7 @@ class StockType(models.Model):
     ]
 
     name = models.CharField(max_length=100, unique=True)
-    unit = models.CharField(max_length=3, choices=UNIT_CHOICES, default='')
+    unit = models.CharField(max_length=3, choices=UNIT_CHOICES, default='', blank=True, null=True)  # optional
 
     @property
     def no_of_stocks(self):
